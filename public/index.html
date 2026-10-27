@@ -3,46 +3,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>코드 1:1 채팅</title>
+    <title>시크릿 코드 1:1 채팅</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; background: #f0f2f5; margin: 0; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        .hidden { display: none; }
-        input, button { width: 100%; padding: 10px; margin-top: 8px; box-sizing: border-box; }
-        button { background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        #chatBox { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
-        .msg { margin-bottom: 8px; }
-        .my-msg { text-align: right; color: #007bff; }
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-gradient: linear-gradient(135deg, #f5f3ff 0%, #e0e7ff 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #1f2937;
+            --text-sub: #4b5563;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            padding: 28px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 420px;
+            transition: all 0.3s ease;
+        }
+
+        h2, h3 {
+            margin-top: 0;
+            color: var(--text-main);
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        p {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+        }
+
+        .hidden { display: none !important; }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            margin-top: 10px;
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+            background: #fff;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px 16px;
+            margin-top: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover { background: var(--primary-hover); }
+        button:active { transform: scale(0.98); }
+
+        .link-btn {
+            background: transparent;
+            color: var(--primary);
+            margin-top: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .link-btn:hover { background: rgba(99, 102, 241, 0.05); }
+
+        .code-box {
+            background: #eef2ff;
+            color: var(--primary);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            margin: 15px 0;
+            border: 1px dashed #c7d2fe;
+        }
+
+        #chatBox {
+            border: 1px solid #e5e7eb;
+            height: 350px;
+            overflow-y: auto;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .msg {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-break: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .msg-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .my-msg-container { align-items: flex-end; }
+        .other-msg-container { align-items: flex-start; }
+
+        .my-msg {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .other-msg {
+            background: #ffffff;
+            color: var(--text-main);
+            border: 1px solid #e5e7eb;
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg-time {
+            font-size: 0.7rem;
+            color: #9ca3af;
+            margin-top: 2px;
+            padding: 0 4px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 20px 0;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .back-btn {
+            background: #e5e7eb;
+            color: #374151;
+            width: auto;
+            padding: 6px 12px;
+            margin: 0;
+            font-size: 0.8rem;
+        }
+        .back-btn:hover { background: #d1d5db; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <!-- 1단계: 닉네임 입력 (로그인/가입) -->
+    <!-- 1단계: 로그인 화면 -->
     <div id="stepLogin">
-        <h2>회원가입 / 접속</h2>
-        <input type="text" id="usernameInput" placeholder="닉네임 입력">
-        <button onclick="register()">접속하기</button>
+        <h2>로그인</h2>
+        <p>고유 코드와 비밀번호를 입력하세요.</p>
+        <input type="text" id="loginCodeInput" placeholder="6자리 고유 코드 (예: A1B2C3)" style="text-transform: uppercase;">
+        <input type="password" id="loginPwInput" placeholder="비밀번호">
+        <button onclick="login()">로그인하기</button>
+        <button class="link-btn" onclick="showRegister()">계정이 없으신가요? 회원가입</button>
     </div>
 
-    <!-- 2단계: 내 코드 확인 & 친구 코드 입력 -->
+    <!-- 회원가입 화면 -->
+    <div id="stepRegister" class="hidden">
+        <h2>회원가입</h2>
+        <p>사용하실 닉네임과 비밀번호를 설정하세요.</p>
+        <input type="text" id="regNameInput" placeholder="사용할 닉네임">
+        <input type="password" id="regPwInput" placeholder="비밀번호 설정">
+        <button onclick="register()">가입 완료하기</button>
+        <button class="link-btn" onclick="showLogin()">계정이 있으신가요? 로그인</button>
+    </div>
+
+    <!-- 2단계: 로비 (내 코드 확인 & 친구 연결) -->
     <div id="stepLobby" class="hidden">
-        <h2>내 정보</h2>
-        <p>닉네임: <b id="myUser"></b></p>
-        <p>내 고유 코드: <b id="myCodeDisplay" style="color:red; font-size: 1.2em;"></b></p>
+        <h3>환영합니다, <span id="myUser" style="color:var(--primary);"></span>님!</h3>
+        <p>아래는 당신의 고유 코드입니다. 친구에게 공유하세요.</p>
+        <div class="code-box" id="myCodeDisplay">------</div>
         <hr>
-        <h3>친구와 채팅하기</h3>
-        <input type="text" id="targetCodeInput" placeholder="친구의 6자리 코드 입력">
-        <button onclick="startChat()">채팅 시작</button>
+        <h3>채팅 연결하기</h3>
+        <p>친구의 코드를 입력해 대화를 시작하세요.</p>
+        <input type="text" id="targetCodeInput" placeholder="친구의 6자리 코드 입력" style="text-transform: uppercase;">
+        <button onclick="startChat()">채팅방 들어가기</button>
     </div>
 
-    <!-- 3단계: 채팅창 -->
+    <!-- 3단계: 채팅방 -->
     <div id="stepChat" class="hidden">
-        <h3 id="chatPartner"></h3>
+        <div class="chat-header">
+            <h3 id="chatPartner" style="margin:0; font-size:1.1rem;">채팅방</h3>
+            <button class="back-btn" onclick="leaveChat()">나가기</button>
+        </div>
         <div id="chatBox"></div>
-        <input type="text" id="msgInput" placeholder="메시지 입력..." onkeydown="if(event.key==='Enter') sendMsg()">
-        <button onclick="sendMsg()">전송</button>
+        <div style="display: flex; gap: 6px;">
+            <input type="text" id="msgInput" placeholder="메시지를 입력하세요..." onkeydown="if(event.key==='Enter') sendMsg()" style="margin-top:0;">
+            <button onclick="sendMsg()" style="width: 80px; margin-top:0;">전송</button>
+        </div>
     </div>
 </div>
 
@@ -52,69 +241,150 @@
     let currentRoom = null;
     let myCode = '';
 
-    // 1. 회원가입/접속 요청
-    function register() {
-        const name = document.getElementById('usernameInput').value.trim();
-        if (name) {
-            socket.emit('register', name);
-        }
+    // 화면 전환 함수들
+    function showRegister() {
+        document.getElementById('stepLogin').classList.add('hidden');
+        document.getElementById('stepRegister').classList.remove('hidden');
     }
 
-    // 서버로부터 발급받은 코드 수신
-    socket.on('registered', (data) => {
-        myCode = data.myCode;
-        document.getElementById('myUser').innerText = data.username;
-        document.getElementById('myCodeDisplay').innerText = data.myCode;
+    function showLogin() {
+        document.getElementById('stepRegister').classList.add('hidden');
+        document.getElementById('stepLogin').classList.remove('hidden');
+    }
 
-        document.getElementById('stepLogin').classList.add('hidden');
-        document.getElementById('stepLobby').classList.remove('hidden');
+    // 회원가입 요청
+    function register() {
+        const username = document.getElementById('regNameInput').value.trim();
+        const password = document.getElementById('regPwInput').value.trim();
+        if (!username || !password) {
+            alert('닉네임과 비밀번호를 모두 입력해주세요.');
+            return;
+        }
+        socket.emit('register', { username, password });
+    }
+
+    socket.on('registered', (data) => {
+        alert(`회원가입 성공! 발급된 고유 코드는 [ ${data.myCode} ] 입니다. 꼭 기억해주세요!`);
+        myCode = data.myCode;
+        enterLobby(data.username, data.myCode);
     });
 
-    // 2. 친구 코드로 채팅 접속 요청
-    function startChat() {
-        const targetCode = document.getElementById('targetCodeInput').value.trim().toUpperCase();
-        if (targetCode) {
-            socket.emit('start_chat', targetCode);
+    // 로그인 요청
+    function login() {
+        const code = document.getElementById('loginCodeInput').value.trim().toUpperCase();
+        const password = document.getElementById('loginPwInput').value.trim();
+        if (!code || !password) {
+            alert('코드와 비밀번호를 입력해주세요.');
+            return;
         }
+        socket.emit('login', { code, password });
     }
 
-    // 채팅방 입장 완료
+    socket.on('logged_in', (data) => {
+        myCode = data.myCode;
+        enterLobby(data.username, data.myCode);
+    });
+
+    function enterLobby(username, code) {
+        document.getElementById('stepLogin').classList.add('hidden');
+        document.getElementById('stepRegister').classList.add('hidden');
+        document.getElementById('stepLobby').classList.remove('hidden');
+
+        document.getElementById('myUser').innerText = username;
+        document.getElementById('myCodeDisplay').innerText = code;
+    }
+
+    // 채팅 시작
+    function startChat() {
+        const targetCode = document.getElementById('targetCodeInput').value.trim().toUpperCase();
+        if (!targetCode) {
+            alert('친구의 코드를 입력해주세요.');
+            return;
+        }
+        socket.emit('start_chat', targetCode);
+    }
+
     socket.on('chat_started', (data) => {
         currentRoom = data.roomName;
-        document.getElementById('chatPartner').innerText = `${data.partnerName}님과의 채팅`;
+        document.getElementById('chatPartner').innerText = `${data.partnerName} 님과의 대화`;
         
         document.getElementById('stepLobby').classList.add('hidden');
         document.getElementById('stepChat').classList.remove('hidden');
+
+        loadChatHistory(currentRoom);
     });
 
-    // 3. 메시지 보내기
+    // 메시지 전송
     function sendMsg() {
         const input = document.getElementById('msgInput');
-        const msg = input.value.trim();
-        if (msg && currentRoom) {
-            socket.emit('send_message', { roomName: currentRoom, message: msg });
+        const message = input.value.trim();
+        if (message && currentRoom) {
+            socket.emit('send_message', { roomName: currentRoom, message });
             input.value = '';
         }
     }
 
-    // 메시지 받기
+    // 메시지 수신 및 로컬 스토리지 저장
     socket.on('receive_message', (data) => {
-        const box = document.getElementById('chatBox');
-        const div = document.createElement('div');
-        div.classList.add('msg');
-
-        if (data.senderCode === myCode) {
-            div.classList.add('my-msg');
-            div.innerText = `나: ${data.message}`;
-        } else {
-            div.innerText = `${data.sender}: ${data.message}`;
-        }
-
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight; // 스크롤 맨 아래로
+        appendMessage(data);
+        saveMessageToHistory(currentRoom, data);
     });
 
-    // 에러 메시지 처리
+    function appendMessage(data) {
+        const box = document.getElementById('chatBox');
+        
+        const container = document.createElement('div');
+        container.classList.add('msg-container');
+
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('msg');
+
+        const isMyMessage = (data.senderCode === myCode);
+        if (isMyMessage) {
+            container.classList.add('my-msg-container');
+            msgDiv.classList.add('my-msg');
+        } else {
+            container.classList.add('other-msg-container');
+            msgDiv.classList.add('other-msg');
+            msgDiv.innerHTML = `<b style="font-size:0.8rem; display:block; margin-bottom:2px; color:var(--primary);">${data.sender}</b>`;
+        }
+
+        msgDiv.appendChild(document.createTextNode(data.message));
+
+        const timeDiv = document.createElement('div');
+        timeDiv.classList.add('msg-time');
+        timeDiv.innerText = data.time || '';
+
+        container.appendChild(msgDiv);
+        container.appendChild(timeDiv);
+        box.appendChild(container);
+        
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // 채팅 기록 저장 (LocalStorage)
+    function saveMessageToHistory(roomName, data) {
+        let history = JSON.parse(localStorage.getItem('chat_' + roomName)) || [];
+        history.push(data);
+        localStorage.setItem('chat_' + roomName, JSON.stringify(history));
+    }
+
+    // 채팅 기록 불러오기
+    function loadChatHistory(roomName) {
+        const box = document.getElementById('chatBox');
+        box.innerHTML = '';
+        let history = JSON.parse(localStorage.getItem('chat_' + roomName)) || [];
+        history.forEach(data => {
+            appendMessage(data);
+        });
+    }
+
+    function leaveChat() {
+        currentRoom = null;
+        document.getElementById('stepChat').classList.add('hidden');
+        document.getElementById('stepLobby').classList.remove('hidden');
+    }
+
     socket.on('error_msg', (msg) => {
         alert(msg);
     });
