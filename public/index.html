@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1:1 채팅</title>
+    <title>1대1 채팅</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -209,7 +209,6 @@
         }
         .back-btn:hover { background: #d1d5db; }
 
-        /* 고급스러운 대화 카드 박스 스타일 */
         .recent-room-item {
             background: #ffffff;
             padding: 14px 16px;
@@ -273,6 +272,7 @@
 <body>
 
 <div class="card">
+    <!-- 로그인 화면 -->
     <div id="stepLogin">
         <h2>로그인</h2>
         <p>고유 코드 또는 닉네임을 입력하세요.</p>
@@ -282,6 +282,7 @@
         <button class="link-btn" onclick="showRegister()">계정이 없으신가요? 회원가입</button>
     </div>
 
+    <!-- 회원가입 화면 -->
     <div id="stepRegister" class="hidden">
         <h2>회원가입</h2>
         <p>사용하실 닉네임과 비밀번호를 설정하세요.</p>
@@ -291,6 +292,7 @@
         <button class="link-btn" onclick="showLogin()">계정이 있으신가요? 로그인</button>
     </div>
 
+    <!-- 로비 화면 -->
     <div id="stepLobby" class="hidden">
         <h3>환영합니다, <span id="myUser" style="color:var(--primary);"></span>님!</h3>
         <p>친구에게 공유할 나의 고유 코드입니다.</p>
@@ -308,6 +310,7 @@
         </div>
     </div>
 
+    <!-- 채팅방 화면 -->
     <div id="stepChat" class="hidden">
         <div class="chat-header">
             <h3 id="chatPartner" style="margin:0; font-size:1.1rem;">채팅방</h3>
@@ -325,6 +328,7 @@
     </div>
 </div>
 
+<!-- 이미지 확대 모달 -->
 <div id="imageModal" onclick="closeModal()">
     <img id="modalImg" src="" alt="확대 이미지">
     <div class="modal-btns" onclick="event.stopPropagation()">
@@ -340,6 +344,7 @@
     let myCode = '';
     let myUsername = '';
 
+    // 화면 전환 함수
     function showRegister() {
         document.getElementById('stepLogin').classList.add('hidden');
         document.getElementById('stepRegister').classList.remove('hidden');
@@ -404,13 +409,185 @@
 
     socket.on('chat_started', (data) => {
         currentRoom = data.roomName;
-        document.getElementById('chatPartner').innerText = `${data.partnerName} 님과의 대화`;  document.getElementById('stepLobby').classList.add('hidden'); document.getElementById('stepChat').classList.remove('hidden');  saveChatRoom(currentRoom, data.partnerName); loadChatHistory(currentRoom); });  function saveChatRoom(roomName, partnerName) { let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) \vert{}\vert{} []; rooms = rooms.filter(r => r.roomName !== roomName); rooms.unshift({ roomName, partnerName }); localStorage.setItem('rooms_' + myCode, JSON.stringify(rooms)); renderRecentRooms(); }  function renderRecentRooms() { const listDiv = document.getElementById('recentChatsList'); listDiv.innerHTML = ''; let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) \vert{}\vert{} [];  if (rooms.length === 0) { listDiv.innerHTML = '<p style="font-size: 0.85rem; color: #9ca3af; text-align: center; margin: 10px 0;">대화 기록이 없습니다.</p>'; return; }  rooms.forEach(r => { let history = JSON.parse(localStorage.getItem('chat_' + r.roomName)) \vert{}\vert{} []; let lastMsgObj = history[history.length - 1]; let lastText = '대화 내용 없음'; if (lastMsgObj) { if (lastMsgObj.type === 'image') lastText = '📷 사진을 보냈습니다.'; else if (lastMsgObj.type === 'file') lastText = `📎 파일: ${lastMsgObj.fileName}`;
+        document.getElementById('chatPartner').innerText = `${data.partnerName} 님과의 대화`;
+        
+        document.getElementById('stepLobby').classList.add('hidden');
+        document.getElementById('stepChat').classList.remove('hidden');
+
+        saveChatRoom(currentRoom, data.partnerName);
+        loadChatHistory(currentRoom);
+    });
+
+    function saveChatRoom(roomName, partnerName) {
+        let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) || [];
+        rooms = rooms.filter(r => r.roomName !== roomName);
+        rooms.unshift({ roomName, partnerName });
+        localStorage.setItem('rooms_' + myCode, JSON.stringify(rooms));
+        renderRecentRooms();
+    }
+
+    function renderRecentRooms() {
+        const listDiv = document.getElementById('recentChatsList');
+        listDiv.innerHTML = '';
+        let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) || [];
+
+        if (rooms.length === 0) {
+            listDiv.innerHTML = '<p style="font-size: 0.85rem; color: #9ca3af; text-align: center; margin: 10px 0;">대화 기록이 없습니다.</p>';
+            return;
+        }
+
+        rooms.forEach(r => {
+            let history = JSON.parse(localStorage.getItem('chat_' + r.roomName)) || [];
+            let lastMsgObj = history[history.length - 1];
+            let lastText = '대화 내용 없음';
+            if (lastMsgObj) {
+                if (lastMsgObj.type === 'image') lastText = '📷 사진을 보냈습니다.';
+                else if (lastMsgObj.type === 'file') lastText = `📎 파일: ${lastMsgObj.fileName}`;
                 else lastText = lastMsgObj.message;
             }
 
             const item = document.createElement('div');
             item.classList.add('recent-room-item');
-            // 💬 이모지와 '입장' 글자를 제거하고 깔끔한 박스 카드 형태로 구성
             item.innerHTML = `
                 <div style="font-weight: 600; color: var(--text-main); font-size: 0.98rem;">${r.partnerName} 님</div>
-                <div style="font-size: 0.84rem; color:
+                <div style="font-size: 0.84rem; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${lastText}</div>
+            `;
+            item.onclick = () => openChatRoom(r.roomName, r.partnerName);
+            listDiv.appendChild(item);
+        });
+    }
+
+    function openChatRoom(roomName, partnerName) {
+        currentRoom = roomName;
+        socket.emit('join_room', roomName);
+        document.getElementById('chatPartner').innerText = `${partnerName} 님과의 대화`;
+        document.getElementById('stepLobby').classList.add('hidden');
+        document.getElementById('stepChat').classList.remove('hidden');
+        loadChatHistory(roomName);
+    }
+
+    function sendMsg() {
+        const input = document.getElementById('msgInput');
+        const message = input.value.trim();
+        if (message && currentRoom) {
+            socket.emit('send_message', { roomName: currentRoom, message, type: 'text' });
+            input.value = '';
+        }
+    }
+
+    function sendFile(input) {
+        const file = input.files[0];
+        if (!file || !currentRoom) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const fileData = e.target.result;
+            const isImage = file.type.startsWith('image/');
+            socket.emit('send_message', { 
+                roomName: currentRoom, 
+                message: fileData, 
+                type: isImage ? 'image' : 'file',
+                fileName: file.name 
+            });
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+    }
+
+    socket.on('receive_message', (data) => {
+        if (data.senderCode !== myCode) {
+            saveChatRoom(data.roomName, data.sender);
+        }
+
+        if (currentRoom === data.roomName) {
+            appendMessage(data);
+        }
+        saveMessageToHistory(data.roomName, data);
+        renderRecentRooms();
+    });
+
+    function appendMessage(data) {
+        const box = document.getElementById('chatBox');
+        
+        const container = document.createElement('div');
+        container.classList.add('msg-container');
+
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('msg');
+
+        const isMyMessage = (data.senderCode === myCode);
+        if (isMyMessage) {
+            container.classList.add('my-msg-container');
+            msgDiv.classList.add('my-msg');
+        } else {
+            container.classList.add('other-msg-container');
+            msgDiv.classList.add('other-msg');
+            msgDiv.innerHTML = `<b style="font-size:0.8rem; display:block; margin-bottom:2px; color:var(--primary);">${data.sender}</b>`;
+        }
+
+        if (data.type === 'image') {
+            const img = document.createElement('img');
+            img.src = data.message;
+            img.onclick = () => openModal(data.message);
+            msgDiv.appendChild(img);
+        } else if (data.type === 'file') {
+            const fileLink = document.createElement('a');
+            fileLink.href = data.message;
+            fileLink.download = data.fileName || 'download';
+            fileLink.className = 'file-msg';
+            fileLink.innerHTML = `📄 <span>${data.fileName || '파일 다운로드'}</span>`;
+            msgDiv.appendChild(fileLink);
+        } else {
+            msgDiv.appendChild(document.createTextNode(data.message));
+        }
+
+        const timeDiv = document.createElement('div');
+        timeDiv.classList.add('msg-time');
+        timeDiv.innerText = data.time || '';
+
+        container.appendChild(msgDiv);
+        container.appendChild(timeDiv);
+        box.appendChild(container);
+        
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function openModal(imgSrc) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImg');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        modalImg.src = imgSrc;
+        downloadBtn.href = imgSrc;
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
+
+    function saveMessageToHistory(roomName, data) {
+        let history = JSON.parse(localStorage.getItem('chat_' + roomName)) || [];
+        history.push(data);
+        localStorage.setItem('chat_' + roomName, JSON.stringify(history));
+    }
+
+    function loadChatHistory(roomName) {
+        const box = document.getElementById('chatBox');
+        box.innerHTML = '';
+        let history = JSON.parse(localStorage.getItem('chat_' + roomName)) || [];
+        history.forEach(data => appendMessage(data));
+    }
+
+    function leaveChat() {
+        currentRoom = null;
+        document.getElementById('stepChat').classList.add('hidden');
+        document.getElementById('stepLobby').classList.remove('hidden');
+        renderRecentRooms();
+    }
+
+    socket.on('error_msg', (msg) => alert(msg));
+</script>
+
+</body>
+</html>
