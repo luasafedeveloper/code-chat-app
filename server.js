@@ -9,10 +9,9 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 유저 데이터 저장 (메모리 방식: { userCode: { username, password, socketId } })
+// 유저 데이터 저장 ({ userCode: { username, password, socketId } })
 const users = {};
 
-// 6자리 고유 코드 생성 함수
 function generateCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
@@ -23,7 +22,7 @@ function generateCode() {
 }
 
 io.on('connection', (socket) => {
-    // 1. 회원가입
+    // 회원가입
     socket.on('register', (data) => {
         const { username, password } = data;
         let myCode = generateCode();
@@ -38,13 +37,29 @@ io.on('connection', (socket) => {
         socket.emit('registered', { username, myCode });
     });
 
-    // 2. 로그인 (코드 + 비밀번호)
+    // 로그인 (고유코드 또는 닉네임 지원)
     socket.on('login', (data) => {
-        const { code, password } = data;
-        const targetUser = users[code];
+        const { identifier, password } = data; // identifier는 코드 또는 닉네임
+        let targetUser = null;
+        let targetCode = null;
+
+        // 1. 코드로 검색
+        if (users[identifier]) {
+            targetUser = users[identifier];
+            targetCode = identifier;
+        } else {
+            // 2. 닉네임으로 검색
+            for (let code in users) {
+                if (users[code].username === identifier) {
+                    targetUser = users[code];
+                    targetCode = code;
+                    break;
+                }
+            }
+        }
 
         if (!targetUser) {
-            socket.emit('error_msg', '존재하지 않는 고유 코드입니다.');
+            socket.emit('error_msg', '존재하지 않는 코드 또는 닉네임입니다.');
             return;
         }
 
@@ -53,15 +68,14 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // 로그인 성공 시 정보 갱신
         targetUser.socketId = socket.id;
-        socket.userCode = code;
+        socket.userCode = targetCode;
         socket.username = targetUser.username;
 
-        socket.emit('logged_in', { username: targetUser.username, myCode: code });
+        socket.emit('logged_in', { username: targetUser.username, myCode: targetCode });
     });
 
-    // 3. 친구 코드로 채팅 시작 요청
+    // 친구 코드로 채팅 시작
     socket.on('start_chat', (targetCode) => {
         const targetUser = users[targetCode];
 
@@ -83,7 +97,7 @@ io.on('connection', (socket) => {
             targetSocket.join(roomName);
             targetSocket.emit('chat_started', {
                 roomName,
-                partnerName: socket.username
+                partnerName: targetUser.username
             });
         }
 
@@ -93,20 +107,19 @@ io.on('connection', (socket) => {
         });
     });
 
-    // 4. 메시지 전송
+    // 메시지 전송
     socket.on('send_message', (data) => {
-        const { roomName, message } = data;
+        const { roomName, message, type } = data;
         io.to(roomName).emit('receive_message', {
             sender: socket.username,
             senderCode: socket.userCode,
             message,
+            type: type || 'text',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
     });
 
-    socket.on('disconnect', () => {
-        // 소켓이 끊어져도 계정 데이터(users)는 유지됨
-    });
+    socket.on('disconnect', () => {});
 });
 
 const PORT = process.env.PORT || 3000;
