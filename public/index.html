@@ -135,14 +135,26 @@
 
         .msg img {
             max-width: 100%;
-            max-height: 220px;
+            max-height: 200px;
             border-radius: 10px;
             margin-top: 4px;
             display: block;
             cursor: pointer;
-            transition: opacity 0.2s;
         }
-        .msg img:hover { opacity: 0.9; }
+
+        .file-msg {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.05);
+            padding: 8px 12px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: inherit;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+        .my-msg .file-msg { background: rgba(255,255,255,0.2); color: white; }
 
         .msg-container {
             display: flex;
@@ -197,7 +209,6 @@
         }
         .back-btn:hover { background: #d1d5db; }
 
-        /* 고급스러운 최근 대화 목록 카드 디자인 */
         .recent-room-item {
             display: flex;
             justify-content: space-between;
@@ -230,7 +241,6 @@
         }
         .file-upload-label:hover { background: #c7d2fe; }
 
-        /* 이미지 확대 보기 모달 (카카오톡 스타일) */
         #imageModal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -309,8 +319,9 @@
         <div id="chatBox"></div>
         
         <div style="display: flex; gap: 8px; align-items: center;">
-            <label class="file-upload-label" title="사진 보내기">
-                📷<input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="sendImage(this)">
+            <!-- 이미지/파일 전송 버튼 통합 (클립 아이콘 📎) -->
+            <label class="file-upload-label" title="파일 및 사진 보내기">
+                📎<input type="file" id="fileInput" style="display:none;" onchange="sendFile(this)">
             </label>
             <input type="text" id="msgInput" placeholder="메시지를 입력하세요..." onkeydown="if(event.key==='Enter') sendMsg()" style="margin-top:0; flex:1;">
             <button onclick="sendMsg()" style="width: 70px; margin-top:0;">전송</button>
@@ -318,7 +329,7 @@
     </div>
 </div>
 
-<!-- 이미지 확대 및 저장 모달 -->
+<!-- 이미지 확대 모달 -->
 <div id="imageModal" onclick="closeModal()">
     <img id="modalImg" src="" alt="확대 이미지">
     <div class="modal-btns" onclick="event.stopPropagation()">
@@ -426,10 +437,14 @@
         }
 
         rooms.forEach(r => {
-            // 마지막 대화 내용 가져오기
             let history = JSON.parse(localStorage.getItem('chat_' + r.roomName)) || [];
             let lastMsgObj = history[history.length - 1];
-            let lastText = lastMsgObj ? (lastMsgObj.type === 'image' ? '📷 사진을 보냈습니다.' : lastMsgObj.message) : '대화 내용 없음';
+            let lastText = '대화 내용 없음';
+            if (lastMsgObj) {
+                if (lastMsgObj.type === 'image') lastText = '📷 사진을 보냈습니다.';
+                else if (lastMsgObj.type === 'file') lastText = `📎 파일: ${lastMsgObj.fileName}`;
+                else lastText = lastMsgObj.message;
+            }
 
             const item = document.createElement('div');
             item.classList.add('recent-room-item');
@@ -462,17 +477,20 @@
         }
     }
 
-    function sendImage(input) {
+    // 파일 및 이미지 전송 함수
+    function sendFile(input) {
         const file = input.files[0];
         if (!file || !currentRoom) return;
 
         const reader = new FileReader();
         reader.onload = function(e) {
-            const base64Data = e.target.result;
+            const fileData = e.target.result;
+            const isImage = file.type.startsWith('image/');
             socket.emit('send_message', { 
                 roomName: currentRoom, 
-                message: base64Data, 
-                type: 'image' 
+                message: fileData, 
+                type: isImage ? 'image' : 'file',
+                fileName: file.name 
             });
         };
         reader.readAsDataURL(file);
@@ -508,6 +526,13 @@
             img.src = data.message;
             img.onclick = () => openModal(data.message);
             msgDiv.appendChild(img);
+        } else if (data.type === 'file') {
+            const fileLink = document.createElement('a');
+            fileLink.href = data.message;
+            fileLink.download = data.fileName || 'download';
+            fileLink.className = 'file-msg';
+            fileLink.innerHTML = `📄 <span>${data.fileName || '파일 다운로드'}</span>`;
+            msgDiv.appendChild(fileLink);
         } else {
             msgDiv.appendChild(document.createTextNode(data.message));
         }
@@ -523,7 +548,6 @@
         box.scrollTop = box.scrollHeight;
     }
 
-    // 이미지 클릭 시 모달 열기 (확대 및 저장 기능)
     function openModal(imgSrc) {
         const modal = document.getElementById('imageModal');
         const modalImg = document.getElementById('modalImg');
