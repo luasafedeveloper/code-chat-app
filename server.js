@@ -5,7 +5,11 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+// ★ 핵심 수정: Socket.io가 처리할 수 있는 최대 데이터 용량을 10MB로 확장 (기본값 1MB 제한 풀기)
+const io = new Server(server, {
+    maxHttpBufferSize: 10 * 1024 * 1024 // 10MB
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -39,16 +43,14 @@ io.on('connection', (socket) => {
 
     // 로그인 (고유코드 또는 닉네임 지원)
     socket.on('login', (data) => {
-        const { identifier, password } = data; // identifier는 코드 또는 닉네임
+        const { identifier, password } = data;
         let targetUser = null;
         let targetCode = null;
 
-        // 1. 코드로 검색
         if (users[identifier]) {
             targetUser = users[identifier];
             targetCode = identifier;
         } else {
-            // 2. 닉네임으로 검색
             for (let code in users) {
                 if (users[code].username === identifier) {
                     targetUser = users[code];
@@ -107,14 +109,15 @@ io.on('connection', (socket) => {
         });
     });
 
-    // 메시지 전송
+    // 메시지 및 파일 전송
     socket.on('send_message', (data) => {
-        const { roomName, message, type } = data;
+        const { roomName, message, type, fileName } = data;
         io.to(roomName).emit('receive_message', {
             sender: socket.username,
             senderCode: socket.userCode,
             message,
             type: type || 'text',
+            fileName: fileName || '',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
     });
