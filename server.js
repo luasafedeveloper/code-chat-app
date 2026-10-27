@@ -94,7 +94,7 @@ io.on('connection', (socket) => {
             targetSocket.join(roomName);
             targetSocket.emit('chat_started', {
                 roomName,
-                partnerName: socket.username
+                partnerName: targetUser.username
             });
         }
 
@@ -104,10 +104,15 @@ io.on('connection', (socket) => {
         });
     });
 
+    // ★ 최근 목록에서 방을 다시 누를 때 서버 소켓도 방에 재입장 처리
+    socket.on('join_room', (roomName) => {
+        socket.join(roomName);
+    });
+
     socket.on('send_message', (data) => {
         const { roomName, message, type, fileName } = data;
         io.to(roomName).emit('receive_message', {
-            roomName, // 방 번호 추가 전송
+            roomName,
             sender: socket.username,
             senderCode: socket.userCode,
             message,
