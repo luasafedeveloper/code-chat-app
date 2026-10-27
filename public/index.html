@@ -454,8 +454,10 @@
         });
     }
 
+    // ★ 최근 목록에서 방을 누를 때 서버에 join_room 신호를 보내도록 수정
     function openChatRoom(roomName, partnerName) {
         currentRoom = roomName;
+        socket.emit('join_room', roomName); // 서버 방 재참여 요청
         document.getElementById('chatPartner').innerText = `${partnerName} 님과의 대화`;
         document.getElementById('stepLobby').classList.add('hidden');
         document.getElementById('stepChat').classList.remove('hidden');
@@ -491,7 +493,6 @@
     }
 
     socket.on('receive_message', (data) => {
-        // 메시지를 받을 때, 상대방의 대화 목록에도 이 방이 자동으로 등록되도록 처리 (핵심 추가)
         if (data.senderCode !== myCode) {
             saveChatRoom(data.roomName, data.sender);
         }
@@ -500,6 +501,7 @@
             appendMessage(data);
         }
         saveMessageToHistory(data.roomName, data);
+        renderRecentRooms(); // 메시지가 올 때 최근 목록 내용(미리보기) 갱신
     });
 
     function appendMessage(data) {
