@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>시크릿 코드 1:1 채팅</title>
+    <title>1:1 채팅</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -209,21 +209,22 @@
         }
         .back-btn:hover { background: #d1d5db; }
 
+        /* 고급스러운 대화 카드 박스 스타일 */
         .recent-room-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             background: #ffffff;
-            padding: 12px 16px;
-            border-radius: 12px;
+            padding: 14px 16px;
+            border-radius: 14px;
             cursor: pointer;
             border: 1px solid #e5e7eb;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
             transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
         .recent-room-item:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.12);
             border-color: var(--primary);
         }
 
@@ -301,8 +302,8 @@
         <button onclick="startChat()">채팅방 들어가기</button>
 
         <hr>
-        <h3>최근 대화 기록</h3>
-        <div id="recentChatsList" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding-right: 2px;">
+        <h3>대화</h3>
+        <div id="recentChatsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding-right: 2px;">
             <p style="font-size: 0.85rem; color: #9ca3af; text-align: center; margin: 10px 0;">대화 기록이 없습니다.</p>
         </div>
     </div>
@@ -403,189 +404,13 @@
 
     socket.on('chat_started', (data) => {
         currentRoom = data.roomName;
-        document.getElementById('chatPartner').innerText = `${data.partnerName} 님과의 대화`;
-        
-        document.getElementById('stepLobby').classList.add('hidden');
-        document.getElementById('stepChat').classList.remove('hidden');
-
-        saveChatRoom(currentRoom, data.partnerName);
-        loadChatHistory(currentRoom);
-    });
-
-    function saveChatRoom(roomName, partnerName) {
-        let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) || [];
-        rooms = rooms.filter(r => r.roomName !== roomName);
-        rooms.unshift({ roomName, partnerName });
-        localStorage.setItem('rooms_' + myCode, JSON.stringify(rooms));
-        renderRecentRooms();
-    }
-
-    function renderRecentRooms() {
-        const listDiv = document.getElementById('recentChatsList');
-        listDiv.innerHTML = '';
-        let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) || [];
-
-        if (rooms.length === 0) {
-            listDiv.innerHTML = '<p style="font-size: 0.85rem; color: #9ca3af; text-align: center; margin: 10px 0;">대화 기록이 없습니다.</p>';
-            return;
-        }
-
-        rooms.forEach(r => {
-            let history = JSON.parse(localStorage.getItem('chat_' + r.roomName)) || [];
-            let lastMsgObj = history[history.length - 1];
-            let lastText = '대화 내용 없음';
-            if (lastMsgObj) {
-                if (lastMsgObj.type === 'image') lastText = '📷 사진을 보냈습니다.';
-                else if (lastMsgObj.type === 'file') lastText = `📎 파일: ${lastMsgObj.fileName}`;
+        document.getElementById('chatPartner').innerText = `${data.partnerName} 님과의 대화`;  document.getElementById('stepLobby').classList.add('hidden'); document.getElementById('stepChat').classList.remove('hidden');  saveChatRoom(currentRoom, data.partnerName); loadChatHistory(currentRoom); });  function saveChatRoom(roomName, partnerName) { let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) \vert{}\vert{} []; rooms = rooms.filter(r => r.roomName !== roomName); rooms.unshift({ roomName, partnerName }); localStorage.setItem('rooms_' + myCode, JSON.stringify(rooms)); renderRecentRooms(); }  function renderRecentRooms() { const listDiv = document.getElementById('recentChatsList'); listDiv.innerHTML = ''; let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) \vert{}\vert{} [];  if (rooms.length === 0) { listDiv.innerHTML = '<p style="font-size: 0.85rem; color: #9ca3af; text-align: center; margin: 10px 0;">대화 기록이 없습니다.</p>'; return; }  rooms.forEach(r => { let history = JSON.parse(localStorage.getItem('chat_' + r.roomName)) \vert{}\vert{} []; let lastMsgObj = history[history.length - 1]; let lastText = '대화 내용 없음'; if (lastMsgObj) { if (lastMsgObj.type === 'image') lastText = '📷 사진을 보냈습니다.'; else if (lastMsgObj.type === 'file') lastText = `📎 파일: ${lastMsgObj.fileName}`;
                 else lastText = lastMsgObj.message;
             }
 
             const item = document.createElement('div');
             item.classList.add('recent-room-item');
+            // 💬 이모지와 '입장' 글자를 제거하고 깔끔한 박스 카드 형태로 구성
             item.innerHTML = `
-                <div>
-                    <div style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">💬 ${r.partnerName} 님</div>
-                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-top: 2px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${lastText}</div>
-                </div>
-                <span style="font-size: 0.8rem; font-weight: 600; color: var(--primary);">입장 &rarr;</span>
-            `;
-            item.onclick = () => openChatRoom(r.roomName, r.partnerName);
-            listDiv.appendChild(item);
-        });
-    }
-
-    // ★ 최근 목록에서 방을 누를 때 서버에 join_room 신호를 보내도록 수정
-    function openChatRoom(roomName, partnerName) {
-        currentRoom = roomName;
-        socket.emit('join_room', roomName); // 서버 방 재참여 요청
-        document.getElementById('chatPartner').innerText = `${partnerName} 님과의 대화`;
-        document.getElementById('stepLobby').classList.add('hidden');
-        document.getElementById('stepChat').classList.remove('hidden');
-        loadChatHistory(roomName);
-    }
-
-    function sendMsg() {
-        const input = document.getElementById('msgInput');
-        const message = input.value.trim();
-        if (message && currentRoom) {
-            socket.emit('send_message', { roomName: currentRoom, message, type: 'text' });
-            input.value = '';
-        }
-    }
-
-    function sendFile(input) {
-        const file = input.files[0];
-        if (!file || !currentRoom) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const fileData = e.target.result;
-            const isImage = file.type.startsWith('image/');
-            socket.emit('send_message', { 
-                roomName: currentRoom, 
-                message: fileData, 
-                type: isImage ? 'image' : 'file',
-                fileName: file.name 
-            });
-        };
-        reader.readAsDataURL(file);
-        input.value = '';
-    }
-
-    socket.on('receive_message', (data) => {
-        if (data.senderCode !== myCode) {
-            saveChatRoom(data.roomName, data.sender);
-        }
-
-        if (currentRoom === data.roomName) {
-            appendMessage(data);
-        }
-        saveMessageToHistory(data.roomName, data);
-        renderRecentRooms(); // 메시지가 올 때 최근 목록 내용(미리보기) 갱신
-    });
-
-    function appendMessage(data) {
-        const box = document.getElementById('chatBox');
-        
-        const container = document.createElement('div');
-        container.classList.add('msg-container');
-
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('msg');
-
-        const isMyMessage = (data.senderCode === myCode);
-        if (isMyMessage) {
-            container.classList.add('my-msg-container');
-            msgDiv.classList.add('my-msg');
-        } else {
-            container.classList.add('other-msg-container');
-            msgDiv.classList.add('other-msg');
-            msgDiv.innerHTML = `<b style="font-size:0.8rem; display:block; margin-bottom:2px; color:var(--primary);">${data.sender}</b>`;
-        }
-
-        if (data.type === 'image') {
-            const img = document.createElement('img');
-            img.src = data.message;
-            img.onclick = () => openModal(data.message);
-            msgDiv.appendChild(img);
-        } else if (data.type === 'file') {
-            const fileLink = document.createElement('a');
-            fileLink.href = data.message;
-            fileLink.download = data.fileName || 'download';
-            fileLink.className = 'file-msg';
-            fileLink.innerHTML = `📄 <span>${data.fileName || '파일 다운로드'}</span>`;
-            msgDiv.appendChild(fileLink);
-        } else {
-            msgDiv.appendChild(document.createTextNode(data.message));
-        }
-
-        const timeDiv = document.createElement('div');
-        timeDiv.classList.add('msg-time');
-        timeDiv.innerText = data.time || '';
-
-        container.appendChild(msgDiv);
-        container.appendChild(timeDiv);
-        box.appendChild(container);
-        
-        box.scrollTop = box.scrollHeight;
-    }
-
-    function openModal(imgSrc) {
-        const modal = document.getElementById('imageModal');
-        const modalImg = document.getElementById('modalImg');
-        const downloadBtn = document.getElementById('downloadBtn');
-        
-        modalImg.src = imgSrc;
-        downloadBtn.href = imgSrc;
-        modal.style.display = 'flex';
-    }
-
-    function closeModal() {
-        document.getElementById('imageModal').style.display = 'none';
-    }
-
-    function saveMessageToHistory(roomName, data) {
-        let history = JSON.parse(localStorage.getItem('chat_' + roomName)) || [];
-        history.push(data);
-        localStorage.setItem('chat_' + roomName, JSON.stringify(history));
-    }
-
-    function loadChatHistory(roomName) {
-        const box = document.getElementById('chatBox');
-        box.innerHTML = '';
-        let history = JSON.parse(localStorage.getItem('chat_' + roomName)) || [];
-        history.forEach(data => appendMessage(data));
-    }
-
-    function leaveChat() {
-        currentRoom = null;
-        document.getElementById('stepChat').classList.add('hidden');
-        document.getElementById('stepLobby').classList.remove('hidden');
-        renderRecentRooms();
-    }
-
-    socket.on('error_msg', (msg) => alert(msg));
-</script>
-
-</body>
-</html>
+                <div style="font-weight: 600; color: var(--text-main); font-size: 0.98rem;">${r.partnerName} 님</div>
+                <div style="font-size: 0.84rem; color:
