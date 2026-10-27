@@ -184,6 +184,22 @@
             font-size: 0.8rem;
         }
         .back-btn:hover { background: #d1d5db; }
+
+        .recent-room-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f3f4f6;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        .recent-room-item:hover {
+            background: #e5e7eb;
+        }
     </style>
 </head>
 <body>
@@ -209,7 +225,7 @@
         <button class="link-btn" onclick="showLogin()">계정이 있으신가요? 로그인</button>
     </div>
 
-    <!-- 2단계: 로비 (내 코드 확인 & 친구 연결) -->
+    <!-- 2단계: 로비 (내 코드 확인 & 친구 연결 & 최근 대화 목록) -->
     <div id="stepLobby" class="hidden">
         <h3>환영합니다, <span id="myUser" style="color:var(--primary);"></span>님!</h3>
         <p>아래는 당신의 고유 코드입니다. 친구에게 공유하세요.</p>
@@ -219,6 +235,13 @@
         <p>친구의 코드를 입력해 대화를 시작하세요.</p>
         <input type="text" id="targetCodeInput" placeholder="친구의 6자리 코드 입력" style="text-transform: uppercase;">
         <button onclick="startChat()">채팅방 들어가기</button>
+
+        <hr>
+        <h3>최근 대화 목록</h3>
+        <div id="recentChatsList" style="max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+            <!-- 동적으로 생성됨 -->
+            <p style="font-size: 0.85rem; color: #9ca3af; text-align: center; margin: 10px 0;">대화 기록이 없습니다.</p>
+        </div>
     </div>
 
     <!-- 3단계: 채팅방 -->
@@ -240,8 +263,8 @@
     const socket = io();
     let currentRoom = null;
     let myCode = '';
+    let myUsername = '';
 
-    // 화면 전환 함수들
     function showRegister() {
         document.getElementById('stepLogin').classList.add('hidden');
         document.getElementById('stepRegister').classList.remove('hidden');
@@ -252,7 +275,6 @@
         document.getElementById('stepLogin').classList.remove('hidden');
     }
 
-    // 회원가입 요청
     function register() {
         const username = document.getElementById('regNameInput').value.trim();
         const password = document.getElementById('regPwInput').value.trim();
@@ -266,10 +288,10 @@
     socket.on('registered', (data) => {
         alert(`회원가입 성공! 발급된 고유 코드는 [ ${data.myCode} ] 입니다. 꼭 기억해주세요!`);
         myCode = data.myCode;
+        myUsername = data.username;
         enterLobby(data.username, data.myCode);
     });
 
-    // 로그인 요청
     function login() {
         const code = document.getElementById('loginCodeInput').value.trim().toUpperCase();
         const password = document.getElementById('loginPwInput').value.trim();
@@ -282,6 +304,7 @@
 
     socket.on('logged_in', (data) => {
         myCode = data.myCode;
+        myUsername = data.username;
         enterLobby(data.username, data.myCode);
     });
 
@@ -292,9 +315,10 @@
 
         document.getElementById('myUser').innerText = username;
         document.getElementById('myCodeDisplay').innerText = code;
+
+        renderRecentRooms();
     }
 
-    // 채팅 시작
     function startChat() {
         const targetCode = document.getElementById('targetCodeInput').value.trim().toUpperCase();
         if (!targetCode) {
@@ -311,10 +335,50 @@
         document.getElementById('stepLobby').classList.add('hidden');
         document.getElementById('stepChat').classList.remove('hidden');
 
+        saveChatRoom(currentRoom, data.partnerName);
         loadChatHistory(currentRoom);
     });
 
-    // 메시지 전송
+    // 최근 대화 방 저장 (LocalStorage)
+    function saveChatRoom(roomName, partnerName) {
+        let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) || [];
+        rooms = rooms.filter(r => r.roomName !== roomName);
+        rooms.unshift({ roomName, partnerName });
+        localStorage.setItem('rooms_' + myCode, JSON.stringify(rooms));
+        renderRecentRooms();
+    }
+
+    // 최근 대화 목록 렌더링
+    function renderRecentRooms() {
+        const listDiv = document.getElementById('recentChatsList');
+        listDiv.innerHTML = '';
+        let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) || [];
+
+        if (rooms.length === 0) {
+            listDiv.innerHTML = '<p style="font-size: 0.85rem; color: #9ca3af; text-align: center; margin: 10px 0;">대화 기록이 없습니다.</p>';
+            return;
+        }
+
+        rooms.forEach(r => {
+            const item = document.createElement('div');
+            item.classList.add('recent-room-item');
+            item.innerHTML = `<span>💬 ${r.partnerName} 님과의 대화</span> <span style="font-size:0.8rem; color:var(--primary);">입장 &rarr;</span>`;
+            item.onclick = () => {
+                openChatRoom(r.roomName, r.partnerName);
+            };
+            listDiv.appendChild(item);
+        });
+    }
+
+    // 목록에서 대화방 바로 들어가기
+    function openChatRoom(roomName, partnerName) {
+        currentRoom = roomName;
+        document.getElementById('chatPartner').innerText = `${partnerName} 님과의 대화`;
+        document.getElementById('stepLobby').classList.add('hidden');
+        document.getElementById('stepChat').classList.remove('hidden');
+        loadChatHistory(roomName);
+    }
+
     function sendMsg() {
         const input = document.getElementById('msgInput');
         const message = input.value.trim();
@@ -324,7 +388,6 @@
         }
     }
 
-    // 메시지 수신 및 로컬 스토리지 저장
     socket.on('receive_message', (data) => {
         appendMessage(data);
         saveMessageToHistory(currentRoom, data);
@@ -362,15 +425,13 @@
         box.scrollTop = box.scrollHeight;
     }
 
-    // 채팅 기록 저장 (LocalStorage)
     function saveMessageToHistory(roomName, data) {
         let history = JSON.parse(localStorage.getItem('chat_' + roomName)) || [];
         history.push(data);
         localStorage.setItem('chat_' + roomName, JSON.stringify(history));
     }
 
-    // 채팅 기록 불러오기
-    function loadChatHistory(roomName) {
+    function loadChatHistory(roomName, roomName) {
         const box = document.getElementById('chatBox');
         box.innerHTML = '';
         let history = JSON.parse(localStorage.getItem('chat_' + roomName)) || [];
@@ -383,6 +444,7 @@
         currentRoom = null;
         document.getElementById('stepChat').classList.add('hidden');
         document.getElementById('stepLobby').classList.remove('hidden');
+        renderRecentRooms(); // 로비로 돌아올 때 최신 목록 갱신
     }
 
     socket.on('error_msg', (msg) => {
