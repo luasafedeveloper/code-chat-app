@@ -6,14 +6,12 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// ★ 핵심 수정: Socket.io가 처리할 수 있는 최대 데이터 용량을 10MB로 확장 (기본값 1MB 제한 풀기)
 const io = new Server(server, {
-    maxHttpBufferSize: 10 * 1024 * 1024 // 10MB
+    maxHttpBufferSize: 10 * 1024 * 1024 // 10MB 파일/사진 제한 해제
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 유저 데이터 저장 ({ userCode: { username, password, socketId } })
 const users = {};
 
 function generateCode() {
@@ -26,7 +24,6 @@ function generateCode() {
 }
 
 io.on('connection', (socket) => {
-    // 회원가입
     socket.on('register', (data) => {
         const { username, password } = data;
         let myCode = generateCode();
@@ -41,7 +38,6 @@ io.on('connection', (socket) => {
         socket.emit('registered', { username, myCode });
     });
 
-    // 로그인 (고유코드 또는 닉네임 지원)
     socket.on('login', (data) => {
         const { identifier, password } = data;
         let targetUser = null;
@@ -77,7 +73,6 @@ io.on('connection', (socket) => {
         socket.emit('logged_in', { username: targetUser.username, myCode: targetCode });
     });
 
-    // 친구 코드로 채팅 시작
     socket.on('start_chat', (targetCode) => {
         const targetUser = users[targetCode];
 
@@ -99,7 +94,7 @@ io.on('connection', (socket) => {
             targetSocket.join(roomName);
             targetSocket.emit('chat_started', {
                 roomName,
-                partnerName: targetUser.username
+                partnerName: socket.username
             });
         }
 
@@ -109,10 +104,10 @@ io.on('connection', (socket) => {
         });
     });
 
-    // 메시지 및 파일 전송
     socket.on('send_message', (data) => {
         const { roomName, message, type, fileName } = data;
         io.to(roomName).emit('receive_message', {
+            roomName, // 방 번호 추가 전송
             sender: socket.username,
             senderCode: socket.userCode,
             message,
