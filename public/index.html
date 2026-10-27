@@ -133,6 +133,13 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
+        .msg img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 4px;
+            display: block;
+        }
+
         .msg-container {
             display: flex;
             flex-direction: column;
@@ -197,8 +204,19 @@
             font-size: 0.95rem;
             font-weight: 500;
         }
-        .recent-room-item:hover {
-            background: #e5e7eb;
+        .recent-room-item:hover { background: #e5e7eb; }
+
+        .file-upload-label {
+            background: #e0e7ff;
+            color: var(--primary);
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-block;
+            font-size: 0.9rem;
+            border: 1px dashed var(--primary);
         }
     </style>
 </head>
@@ -225,7 +243,7 @@
         <button class="link-btn" onclick="showLogin()">계정이 있으신가요? 로그인</button>
     </div>
 
-    <!-- 2단계: 로비 (내 코드 확인 & 친구 연결 & 최근 대화 목록) -->
+    <!-- 2단계: 로비 -->
     <div id="stepLobby" class="hidden">
         <h3>환영합니다, <span id="myUser" style="color:var(--primary);"></span>님!</h3>
         <p>아래는 당신의 고유 코드입니다. 친구에게 공유하세요.</p>
@@ -239,7 +257,6 @@
         <hr>
         <h3>최근 대화 목록</h3>
         <div id="recentChatsList" style="max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
-            <!-- 동적으로 생성됨 -->
             <p style="font-size: 0.85rem; color: #9ca3af; text-align: center; margin: 10px 0;">대화 기록이 없습니다.</p>
         </div>
     </div>
@@ -251,9 +268,14 @@
             <button class="back-btn" onclick="leaveChat()">나가기</button>
         </div>
         <div id="chatBox"></div>
-        <div style="display: flex; gap: 6px;">
-            <input type="text" id="msgInput" placeholder="메시지를 입력하세요..." onkeydown="if(event.key==='Enter') sendMsg()" style="margin-top:0;">
-            <button onclick="sendMsg()" style="width: 80px; margin-top:0;">전송</button>
+        
+        <!-- 입력창 및 사진 전송 버튼 영역 -->
+        <div style="display: flex; gap: 6px; align-items: center;">
+            <label class="file-upload-label" style="margin:0; padding: 10px 12px;" title="사진 보내기">
+                📷<input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="sendImage(this)">
+            </label>
+            <input type="text" id="msgInput" placeholder="메시지를 입력하세요..." onkeydown="if(event.key==='Enter') sendMsg()" style="margin-top:0; flex:1;">
+            <button onclick="sendMsg()" style="width: 70px; margin-top:0;">전송</button>
         </div>
     </div>
 </div>
@@ -286,7 +308,7 @@
     }
 
     socket.on('registered', (data) => {
-        alert(`회원가입 성공! 발급된 고유 코드는 [ ${data.myCode} ] 입니다. 꼭 기억해주세요!`);
+        alert(`회원가입 성공! 발급된 고유 코드는 [ ${data.myCode} ] 입니다.`);
         myCode = data.myCode;
         myUsername = data.username;
         enterLobby(data.username, data.myCode);
@@ -315,7 +337,6 @@
 
         document.getElementById('myUser').innerText = username;
         document.getElementById('myCodeDisplay').innerText = code;
-
         renderRecentRooms();
     }
 
@@ -339,7 +360,6 @@
         loadChatHistory(currentRoom);
     });
 
-    // 최근 대화 방 저장 (LocalStorage)
     function saveChatRoom(roomName, partnerName) {
         let rooms = JSON.parse(localStorage.getItem('rooms_' + myCode)) || [];
         rooms = rooms.filter(r => r.roomName !== roomName);
@@ -348,7 +368,6 @@
         renderRecentRooms();
     }
 
-    // 최근 대화 목록 렌더링
     function renderRecentRooms() {
         const listDiv = document.getElementById('recentChatsList');
         listDiv.innerHTML = '';
@@ -363,14 +382,11 @@
             const item = document.createElement('div');
             item.classList.add('recent-room-item');
             item.innerHTML = `<span>💬 ${r.partnerName} 님과의 대화</span> <span style="font-size:0.8rem; color:var(--primary);">입장 &rarr;</span>`;
-            item.onclick = () => {
-                openChatRoom(r.roomName, r.partnerName);
-            };
+            item.onclick = () => openChatRoom(r.roomName, r.partnerName);
             listDiv.appendChild(item);
         });
     }
 
-    // 목록에서 대화방 바로 들어가기
     function openChatRoom(roomName, partnerName) {
         currentRoom = roomName;
         document.getElementById('chatPartner').innerText = `${partnerName} 님과의 대화`;
@@ -383,9 +399,27 @@
         const input = document.getElementById('msgInput');
         const message = input.value.trim();
         if (message && currentRoom) {
-            socket.emit('send_message', { roomName: currentRoom, message });
+            socket.emit('send_message', { roomName: currentRoom, message, type: 'text' });
             input.value = '';
         }
+    }
+
+    // 이미지 전송 함수 (파일을 읽어서 Base64로 변환 후 전송)
+    function sendImage(input) {
+        const file = input.files[0];
+        if (!file || !currentRoom) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64Data = e.target.result;
+            socket.emit('send_message', { 
+                roomName: currentRoom, 
+                message: base64Data, 
+                type: 'image' 
+            });
+        };
+        reader.readAsDataURL(file);
+        input.value = ''; // 초기화
     }
 
     socket.on('receive_message', (data) => {
@@ -412,7 +446,14 @@
             msgDiv.innerHTML = `<b style="font-size:0.8rem; display:block; margin-bottom:2px; color:var(--primary);">${data.sender}</b>`;
         }
 
-        msgDiv.appendChild(document.createTextNode(data.message));
+        // 텍스트인지 이미지인지 판별하여 렌더링
+        if (data.type === 'image') {
+            const img = document.createElement('img');
+            img.src = data.message;
+            msgDiv.appendChild(img);
+        } else {
+            msgDiv.appendChild(document.createTextNode(data.message));
+        }
 
         const timeDiv = document.createElement('div');
         timeDiv.classList.add('msg-time');
@@ -431,25 +472,21 @@
         localStorage.setItem('chat_' + roomName, JSON.stringify(history));
     }
 
-    function loadChatHistory(roomName, roomName) {
+    function loadChatHistory(roomName) {
         const box = document.getElementById('chatBox');
         box.innerHTML = '';
         let history = JSON.parse(localStorage.getItem('chat_' + roomName)) || [];
-        history.forEach(data => {
-            appendMessage(data);
-        });
+        history.forEach(data => appendMessage(data));
     }
 
     function leaveChat() {
         currentRoom = null;
         document.getElementById('stepChat').classList.add('hidden');
         document.getElementById('stepLobby').classList.remove('hidden');
-        renderRecentRooms(); // 로비로 돌아올 때 최신 목록 갱신
+        renderRecentRooms();
     }
 
-    socket.on('error_msg', (msg) => {
-        alert(msg);
-    });
+    socket.on('error_msg', (msg) => alert(msg));
 </script>
 
 </body>
