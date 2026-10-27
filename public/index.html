@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>코드 1:1 채팅</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; background: #f0f2f5; margin: 0; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .hidden { display: none; }
+        input, button { width: 100%; padding: 10px; margin-top: 8px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #chatBox { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .msg { margin-bottom: 8px; }
+        .my-msg { text-align: right; color: #007bff; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <!-- 1단계: 닉네임 입력 (로그인/가입) -->
+    <div id="stepLogin">
+        <h2>회원가입 / 접속</h2>
+        <input type="text" id="usernameInput" placeholder="닉네임 입력">
+        <button onclick="register()">접속하기</button>
+    </div>
+
+    <!-- 2단계: 내 코드 확인 & 친구 코드 입력 -->
+    <div id="stepLobby" class="hidden">
+        <h2>내 정보</h2>
+        <p>닉네임: <b id="myUser"></b></p>
+        <p>내 고유 코드: <b id="myCodeDisplay" style="color:red; font-size: 1.2em;"></b></p>
+        <hr>
+        <h3>친구와 채팅하기</h3>
+        <input type="text" id="targetCodeInput" placeholder="친구의 6자리 코드 입력">
+        <button onclick="startChat()">채팅 시작</button>
+    </div>
+
+    <!-- 3단계: 채팅창 -->
+    <div id="stepChat" class="hidden">
+        <h3 id="chatPartner"></h3>
+        <div id="chatBox"></div>
+        <input type="text" id="msgInput" placeholder="메시지 입력..." onkeydown="if(event.key==='Enter') sendMsg()">
+        <button onclick="sendMsg()">전송</button>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    let currentRoom = null;
+    let myCode = '';
+
+    // 1. 회원가입/접속 요청
+    function register() {
+        const name = document.getElementById('usernameInput').value.trim();
+        if (name) {
+            socket.emit('register', name);
+        }
+    }
+
+    // 서버로부터 발급받은 코드 수신
+    socket.on('registered', (data) => {
+        myCode = data.myCode;
+        document.getElementById('myUser').innerText = data.username;
+        document.getElementById('myCodeDisplay').innerText = data.myCode;
+
+        document.getElementById('stepLogin').classList.add('hidden');
+        document.getElementById('stepLobby').classList.remove('hidden');
+    });
+
+    // 2. 친구 코드로 채팅 접속 요청
+    function startChat() {
+        const targetCode = document.getElementById('targetCodeInput').value.trim().toUpperCase();
+        if (targetCode) {
+            socket.emit('start_chat', targetCode);
+        }
+    }
+
+    // 채팅방 입장 완료
+    socket.on('chat_started', (data) => {
+        currentRoom = data.roomName;
+        document.getElementById('chatPartner').innerText = `${data.partnerName}님과의 채팅`;
+        
+        document.getElementById('stepLobby').classList.add('hidden');
+        document.getElementById('stepChat').classList.remove('hidden');
+    });
+
+    // 3. 메시지 보내기
+    function sendMsg() {
+        const input = document.getElementById('msgInput');
+        const msg = input.value.trim();
+        if (msg && currentRoom) {
+            socket.emit('send_message', { roomName: currentRoom, message: msg });
+            input.value = '';
+        }
+    }
+
+    // 메시지 받기
+    socket.on('receive_message', (data) => {
+        const box = document.getElementById('chatBox');
+        const div = document.createElement('div');
+        div.classList.add('msg');
+
+        if (data.senderCode === myCode) {
+            div.classList.add('my-msg');
+            div.innerText = `나: ${data.message}`;
+        } else {
+            div.innerText = `${data.sender}: ${data.message}`;
+        }
+
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight; // 스크롤 맨 아래로
+    });
+
+    // 에러 메시지 처리
+    socket.on('error_msg', (msg) => {
+        alert(msg);
+    });
+</script>
+
+</body>
+</html>
