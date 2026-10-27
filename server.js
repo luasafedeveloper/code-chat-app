@@ -9,10 +9,10 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 접속자 및 고유 코드 데이터 저장 (메모리 방식)
-const users = {}; // { userCode: { username, socketId } }
+// 유저 데이터 저장 (메모리 방식: { userCode: { username, password, socketId } })
+const users = {};
 
-// 6자리 고유 코드 생성 함수 (예: A1B2C3)
+// 6자리 고유 코드 생성 함수
 function generateCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
@@ -23,21 +23,45 @@ function generateCode() {
 }
 
 io.on('connection', (socket) => {
-    // 1. 회원가입/로그인 (코드 발급)
-    socket.on('register', (username) => {
+    // 1. 회원가입
+    socket.on('register', (data) => {
+        const { username, password } = data;
         let myCode = generateCode();
-        while (users[myCode]) { // 중복 방지
+        while (users[myCode]) {
             myCode = generateCode();
         }
 
-        users[myCode] = { username, socketId: socket.id };
+        users[myCode] = { username, password, socketId: socket.id };
         socket.userCode = myCode;
         socket.username = username;
 
         socket.emit('registered', { username, myCode });
     });
 
-    // 2. 친구 코드로 채팅 시작 요청
+    // 2. 로그인 (코드 + 비밀번호)
+    socket.on('login', (data) => {
+        const { code, password } = data;
+        const targetUser = users[code];
+
+        if (!targetUser) {
+            socket.emit('error_msg', '존재하지 않는 고유 코드입니다.');
+            return;
+        }
+
+        if (targetUser.password !== password) {
+            socket.emit('error_msg', '비밀번호가 일치하지 않습니다.');
+            return;
+        }
+
+        // 로그인 성공 시 정보 갱신
+        targetUser.socketId = socket.id;
+        socket.userCode = code;
+        socket.username = targetUser.username;
+
+        socket.emit('logged_in', { username: targetUser.username, myCode: code });
+    });
+
+    // 3. 친구 코드로 채팅 시작 요청
     socket.on('start_chat', (targetCode) => {
         const targetUser = users[targetCode];
 
@@ -51,12 +75,9 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // 두 유저의 코드를 정렬하여 고유한 방 이름 생성
         const roomName = [socket.userCode, targetCode].sort().join('_');
-        
         socket.join(roomName);
         
-        // 상대방 소켓도 해당 방에 입장시킴
         const targetSocket = io.sockets.sockets.get(targetUser.socketId);
         if (targetSocket) {
             targetSocket.join(roomName);
@@ -72,21 +93,19 @@ io.on('connection', (socket) => {
         });
     });
 
-    // 3. 메시지 전송
+    // 4. 메시지 전송
     socket.on('send_message', (data) => {
         const { roomName, message } = data;
         io.to(roomName).emit('receive_message', {
             sender: socket.username,
             senderCode: socket.userCode,
-            message
+            message,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
     });
 
-    // 접속 해제 시 데이터 정리
     socket.on('disconnect', () => {
-        if (socket.userCode) {
-            delete users[socket.userCode];
-        }
+        // 소켓이 끊어져도 계정 데이터(users)는 유지됨
     });
 });
 
