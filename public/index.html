@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>시크릿 코드 1:1 채팅</title>
+    <title>1대1 채팅</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -338,7 +338,7 @@
     let currentRoom = null;
     let myCode = '';
     let myUsername = '';
-    let currentPartnerName = ''; // 현재 대화 중인 상대방 이름 저장
+    let currentPartnerName = '';
 
     function showRegister() {
         document.getElementById('stepLogin').classList.add('hidden');
@@ -422,7 +422,7 @@
             localStorage.setItem('rooms_' + myCode, JSON.stringify(rooms));
             renderRecentRooms();
         } catch (e) {
-            console.error('대화 목록 저장 실패:', e);
+            // 용량 초과 경고 창을 띄우지 않고 조용히 무시
         }
     }
 
@@ -496,7 +496,6 @@
     }
 
     socket.on('receive_message', (data) => {
-        // 상대방이 보낸 거라면 상대 이름, 내가 보낸 거라면 현재 파트너 이름 사용
         const partnerName = (data.senderCode === myCode) ? currentPartnerName : data.sender;
         if (partnerName) {
             saveChatRoom(data.roomName, partnerName);
@@ -575,8 +574,7 @@
             history.push(data);
             localStorage.setItem('chat_' + roomName, JSON.stringify(history));
         } catch (e) {
-            console.error('메시지 저장 용량 초과:', e);
-            alert('기기 저장 공간이 부족하여 파일/사진이 기록에 전부 저장되지 않을 수 있습니다.');
+            // 저장공간 초과 경고창(alert)을 띄우지 않고 조용히 처리하여 오류 방지
         }
     }
 
