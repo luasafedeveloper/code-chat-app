@@ -6,9 +6,9 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io 데이터 용량 제한 10MB로 확장
+// 사진 및 파일 전송 용량 제한을 100MB로 대폭 확장 (무제한에 가깝게 설정)
 const io = new Server(server, {
-    maxHttpBufferSize: 10 * 1024 * 1024 
+    maxHttpBufferSize: 100 * 1024 * 1024 
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
